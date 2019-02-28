@@ -415,3 +415,17 @@ printAndLog(txt, pipLogFile)
 
 cat(paste0("*** DONE: ", script_name, "\n"))
 
+#*************************************************************************************************************
+### IDEA 3:
+# similaire à IDEA 2 mais travailler avec des classes de distances ?
+#*************************************************************************************************************
+
+#*************************************************************************************************************
+### IDEA 4:
+# soit g-1, g-2, g-3, ... les gènes à gauche du TAD, et g+1, g+2, g+3 les gènes à droite du TAD
+# et g1, g2, g3, ... les gènes dans le TAD
+# calculer les meanCorr pour les sets
+# m1={g1,g2,g3,..gn} m2={g2,g3,..gn, g+1} mk={gi, ..., g+j} tant que g+j est dans le même intervalle de TAD size
+# ensuite faire qqh comme un cumdiff
+#*************************************************************************************************************
+
