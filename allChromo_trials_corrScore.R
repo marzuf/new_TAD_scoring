@@ -16,14 +16,14 @@ stopifnot(dir.exists(dataFold))
 hicds <- "GSE105318_DLD1_40kb"
 exprds <- "TCGAcoad_msi_mss"
 
-chromo <- "chr20"
+# chromo <- "chr20"
 
 stopifnot(dir.exists(file.path(dataFold, hicds)))
 
 pipOutFold <- file.path(dataFold, "PIPELINE", "OUTPUT_FOLDER", hicds, exprds)
 stopifnot(dir.exists(file.path(pipOutFold)))
 
-outFold <- file.path(paste0("TRIALS_CORRSCORE_", chromo))
+outFold <- file.path(paste0("TRIALS_CORRSCORE"))
 dir.create(outFold, recursive = TRUE)
 
 script0_name <- "0_prepGeneData"
@@ -45,11 +45,25 @@ gene2tadDT <- gene2tadDT[gene2tadDT$entrezID %in% as.character(geneList),]
 
 corrMethodCoexpr <- "pearson"
 
-geneCoexpr_DT <- eval(parse(text = load(file.path(paste0(chromo, "_geneCoexpr_DT.Rdata")))))
+genecoexpr_file <- file.path(dataFold,"CREATE_COEXPR_SORTNODUP", hicds, paste0(exprds, "_", corrMethodCoexpr), "coexprDT.Rdata")
+stopifnot(file.exists(genecoexpr_file))
+cat("... load geneCoexpr data\n")
+geneCoexpr_DT <- eval(parse(text = load(genecoexpr_file)))
 
-geneDist_DT <- eval(parse(text = load(file.path(paste0(chromo, "_geneDist_DT.Rdata")))))
 
-geneSameTAD_DT <- eval(parse(text = load(file.path(paste0(chromo, "_geneSameTAD_DT.Rdata")))))
+genedist_file <- file.path(dataFold, "CREATE_DIST_SORTNODUP", hicds,"all_dist_pairs.Rdata")
+stopifnot(file.exists(genedist_file))
+cat("... load geneDist data\n")
+geneDist_DT <- eval(parse(text = load(genedist_file)))
+
+genesametad_file <- file.path(dataFold, "CREATE_SAME_TAD_SORTNODUP", hicds,"all_TAD_pairs.Rdata")
+stopifnot(file.exists(genesametad_file))
+cat("... load geneSameTAD data\n")
+geneSameTAD_DT <- eval(parse(text = load(genesametad_file)))
+
+# geneCoexpr_DT <- eval(parse(text = load(file.path(paste0(chromo, "_geneCoexpr_DT.Rdata")))))
+# geneDist_DT <- eval(parse(text = load(file.path(paste0(chromo, "_geneDist_DT.Rdata")))))
+# geneSameTAD_DT <- eval(parse(text = load(file.path(paste0(chromo, "_geneSameTAD_DT.Rdata")))))
 
 ### take only the filtered data according to initial settings
 pipeline_regionList <- eval(parse(text = load(file.path(pipOutFold, script0_name, "pipeline_regionList.Rdata"))))
@@ -59,11 +73,11 @@ gene2tadDT <- gene2tadDT[gene2tadDT$region %in% pipeline_regionList,]
 all_regions <- unique(as.character(gene2tadDT$region))
 stopifnot(grepl("_TAD", all_regions))
 
-all_regions <- all_regions[grepl(paste0(chromo, "_"), all_regions)]
+# all_regions <- all_regions[grepl(paste0(chromo, "_"), all_regions)]
 
 reg <- all_regions[35]
 
-# all_regions <- all_regions[1:10]
+# all_regions <- all_regions[1:5]
 
 all_scores_all_TADs <- foreach(reg = all_regions) %dopar% {
   

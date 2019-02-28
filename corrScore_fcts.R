@@ -6,7 +6,7 @@ require(flux)
 # Xreg_genes with tad_genes
 # Xgene2tadDT with gt2_DT
 # Xnorm_rnaseqDT with expr_DT
-# tad_coexprDistDT with tad_coexprDist_DT
+# tad_coexprDist_DT with tad_coexprDist_DT
 
 #*************************************************************************************************************
 ### IDEA 1:
@@ -19,24 +19,26 @@ require(flux)
 
 tad_score_trial1 <- function(
   tad_coexprDist_DT,
-  tadRange_coexprDist_DT,
-  distRad=1000
+  tadRange_coexprDist_DT
 ) {
   
   #### inTAD
   # fit models
-  inTAD_lm <- lm(coexpr ~ dist, data = tad_coexprDistDT)
-  inTAD_mod <- loess(coexpr ~ dist, data = tad_coexprDistDT)
-  smooth_vals_inTAD <- predict(inTAD_mod, sort(tad_coexprDistDT$dist))
-  auc_inTAD_obsDist <- auc(x = sort(tad_coexprDistDT$dist), y = smooth_vals_inTAD)
+  inTAD_lm <- lm(coexpr ~ dist, data = tad_coexprDist_DT)
+  inTAD_mod <- loess(coexpr ~ dist, data = tad_coexprDist_DT)
+  smooth_vals_inTAD <- predict(inTAD_mod, sort(tad_coexprDist_DT$dist))
+  auc_inTAD_obsDist <- auc(x = sort(tad_coexprDist_DT$dist), y = smooth_vals_inTAD)
   slope_inTAD <- as.numeric(coef(inTAD_lm)["dist"])
   
   #### diffTAD
   # fit models
-  smooth_vals_diffTAD <- predict(diffTAD_mod, sort(tadRange_coexprDistDT$dist))
-  auc_diffTAD_obsDist <- auc(x = sort(tadRange_coexprDistDT$dist), y = smooth_vals_diffTAD)
-  diffTAD_lm <- lm(coexpr ~ dist, data = tadRange_coexprDistDT)
-  diffTAD_mod <- loess(coexpr ~ dist, data = tadRange_coexprDistDT)
+  diffTAD_lm <- lm(coexpr ~ dist, data = tadRange_coexprDist_DT)
+  diffTAD_mod <- loess(coexpr ~ dist, data = tadRange_coexprDist_DT)
+  
+  smooth_vals_diffTAD <- predict(diffTAD_mod, sort(tadRange_coexprDist_DT$dist))
+  auc_diffTAD_obsDist <- auc(x = sort(tadRange_coexprDist_DT$dist), y = smooth_vals_diffTAD)
+  diffTAD_lm <- lm(coexpr ~ dist, data = tadRange_coexprDist_DT)
+  diffTAD_mod <- loess(coexpr ~ dist, data = tadRange_coexprDist_DT)
   slope_diffTAD <- as.numeric(coef(diffTAD_lm)["dist"])
   ### ratios
   auc_inTAD_diffTAD_ratio <- auc_inTAD_obsDist/auc_diffTAD_obsDist
@@ -45,12 +47,12 @@ tad_score_trial1 <- function(
   stopifnot(!is.na(inTAD_diffTAD_lmSlopeRatio))
   
   # TAD score is then:
-  auc_inTAD_diffTAD_ratio
-  # or
-  inTAD_diffTAD_lmSlopeRatio  # or 1-slopeRatio to have higher score better
+  # auc_inTAD_diffTAD_ratio
+  # # or
+  # inTAD_diffTAD_lmSlopeRatio  # or 1-slopeRatio to have higher score better
   
-  return(list(auc_inTAD_diffTAD_ratio = auc_inTAD_diffTAD_ratio, 
-              inTAD_diffTAD_lmSlopeRatio = inTAD_diffTAD_lmSlopeRatio))
+  # return(list(auc_inTAD_diffTAD_ratio = auc_inTAD_diffTAD_ratio, 
+  #             inTAD_diffTAD_lmSlopeRatio = inTAD_diffTAD_lmSlopeRatio))
   
   return(list(
     auc_inTAD_obsDist = auc_inTAD_obsDist,
@@ -58,8 +60,6 @@ tad_score_trial1 <- function(
     slope_inTAD = slope_inTAD,
     slope_diffTAD = slope_diffTAD
   ))
-  
-  
 }
 
 
@@ -124,9 +124,10 @@ tad_score_trial4 <- function(
   
   tad_genes <- gt2_DT$entrezID[gt2_DT$region == tad]
   tad_nGenes <- length(tad_genes)
+  stopifnot(tad_nGenes > 1)
   
-  
-  tad_chromo <- gsub("(^chr.+?)_TAD.+$", "\\1", unique(tad_sameTADdt$region))
+  tad_chromo <- gsub("(^chr.+?)_TAD.+$", "\\1", unique(gt2_DT$region[gt2_DT$region == tad]))
+  stopifnot(length(tad_chromo) == 1)
   
   chromo_gene2tadDT <- gt2_DT[as.character(gt2_DT$chromo) == as.character(tad_chromo),]
   stopifnot(nrow(chromo_gene2tadDT) > 0)
@@ -139,10 +140,14 @@ tad_score_trial4 <- function(
   stopifnot(tad_genes %in% chromo_gene2tadDT$entrezID)
   
   idx_tadStart <- min(which(chromo_gene2tadDT$entrezID %in% tad_genes))
-  idx_tadEnd <- max(which(chromo_gene2tadDT$entrezID %in% tad_genes))
-  
   tad_startPos <- chromo_gene2tadDT$start[idx_tadStart]
+  
+  # need to have the genes sorted by end: otherwise if one gene that is not the last one ends after the
+  # last one, I will remove the wrong one from tad_genes and will have duplicates ?!
+  chromo_gene2tadDT <- chromo_gene2tadDT[order(chromo_gene2tadDT$end, chromo_gene2tadDT$start),]
+  idx_tadEnd <- max(which(chromo_gene2tadDT$entrezID %in% tad_genes))
   tad_endPos <- chromo_gene2tadDT$end[idx_tadEnd]
+  chromo_gene2tadDT <- chromo_gene2tadDT[order(chromo_gene2tadDT$start, chromo_gene2tadDT$end),]
   
   tad_size <- tad_endPos - tad_startPos + 1
   stopifnot(tad_size > 0)
@@ -152,6 +157,7 @@ tad_score_trial4 <- function(
   left_gene2tadDT <- chromo_gene2tadDT[(tad_startPos - chromo_gene2tadDT$start + 1) <= tad_size & 
                                          tad_startPos > chromo_gene2tadDT$start,
                                        ]
+  
   # do not take more genes
   if(nrow(left_gene2tadDT) > (tad_nGenes-1))
     left_gene2tadDT <- left_gene2tadDT[1:(tad_nGenes-1),]
@@ -164,7 +170,8 @@ tad_score_trial4 <- function(
     left_window_corrs <- foreach(i = seq_len(nrow(left_gene2tadDT)), .combine='c') %do% {
       
       gene_set <- c(tad_genes[-c((length(tad_genes)-i+1):length(tad_genes))], 
-                    left_genes[length(left_genes)-i+1])
+                    left_genes[(length(left_genes)-i+1):length(left_genes)])
+      stopifnot(!duplicated(gene_set))
       
       stopifnot(length(gene_set) == tad_nGenes)
       # stopifnot(max(chromo_gene2tadDT$end[chromo_gene2tadDT$entrezID %in% gene_set]) - 
@@ -189,6 +196,22 @@ tad_score_trial4 <- function(
   right_gene2tadDT <- chromo_gene2tadDT[(chromo_gene2tadDT$end - tad_endPos + 1) <= tad_size & 
                                           tad_endPos < chromo_gene2tadDT$end,
                                         ]
+  
+  # need to have the genes sorted by end: otherwise if one gene that is not the last one ends after the
+  # last one, I will remove the wrong one from tad_genes and will have duplicates ?!
+  
+  right_gene2tadDT <- right_gene2tadDT[order(right_gene2tadDT$end, right_gene2tadDT$start),]
+  
+  
+  stopifnot(is.numeric(gt2_DT$start))
+  stopifnot(is.numeric(gt2_DT$end))
+  right_gt2_DT <- gt2_DT[order(gt2_DT$end, gt2_DT$start),]
+  
+  tad_genes_right_sorted <- right_gt2_DT$entrezID[right_gt2_DT$region == tad]
+  tad_nGenes <- length(tad_genes)
+  stopifnot(tad_nGenes > 1)
+  
+  
   # do not take more genes
   if(nrow(right_gene2tadDT) > (tad_nGenes-1))
     right_gene2tadDT <- right_gene2tadDT[1:(tad_nGenes-1),]
@@ -198,13 +221,14 @@ tad_score_trial4 <- function(
   } else{
     right_genes <- right_gene2tadDT$entrezID
     right_window_corrs <- foreach(i = seq_len(nrow(right_gene2tadDT)), .combine='c') %do% {
-      gene_set <- c(tad_genes[-c(1:i)], right_genes[c(1:i)])
+      gene_set <- c(tad_genes_right_sorted[-c(1:i)], right_genes[c(1:i)])
       stopifnot(length(gene_set) == tad_nGenes)
+      stopifnot(!duplicated(gene_set))
       # stopifnot(max(chromo_gene2tadDT$end[chromo_gene2tadDT$entrezID %in% gene_set]) - 
       #   min(chromo_gene2tadDT$start[chromo_gene2tadDT$entrezID %in% gene_set]) + 1 <= tad_size)
       # -> do not impose this constraint (too stringent ?)
       stopifnot(max(chromo_gene2tadDT$end[chromo_gene2tadDT$entrezID %in% gene_set]) -
-                  max(chromo_gene2tadDT$end[chromo_gene2tadDT$entrezID %in% tad_genes]) + 1 <= tad_size)
+                  max(chromo_gene2tadDT$end[chromo_gene2tadDT$entrezID %in% tad_genes_right_sorted]) + 1 <= tad_size)
       stopifnot(gene_set %in% geneList)
       rowsToKeep <- which(geneList %in% gene_set)
       subData <- as.data.frame(t(expr_DT[rowsToKeep,,drop=F]))
