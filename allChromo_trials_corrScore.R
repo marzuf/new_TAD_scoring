@@ -47,19 +47,21 @@ corrMethodCoexpr <- "pearson"
 
 genecoexpr_file <- file.path(dataFold,"CREATE_COEXPR_SORTNODUP", hicds, paste0(exprds, "_", corrMethodCoexpr), "coexprDT.Rdata")
 stopifnot(file.exists(genecoexpr_file))
-cat("... load geneCoexpr data\n")
+cat(paste0("... load geneCoexpr data\t", Sys.time(), " - "))
 geneCoexpr_DT <- eval(parse(text = load(genecoexpr_file)))
-
+cat(paste0(Sys.time(), "\n"))
 
 genedist_file <- file.path(dataFold, "CREATE_DIST_SORTNODUP", hicds,"all_dist_pairs.Rdata")
 stopifnot(file.exists(genedist_file))
-cat("... load geneDist data\n")
+cat(paste0("... load geneDist data\t", Sys.time(), " - "))
 geneDist_DT <- eval(parse(text = load(genedist_file)))
+cat(paste0(Sys.time(), "\n"))
 
 genesametad_file <- file.path(dataFold, "CREATE_SAME_TAD_SORTNODUP", hicds,"all_TAD_pairs.Rdata")
 stopifnot(file.exists(genesametad_file))
-cat("... load geneSameTAD data\n")
+cat(paste0("... load geneSameTAD data\t", Sys.time(), " - "))
 geneSameTAD_DT <- eval(parse(text = load(genesametad_file)))
+cat(paste0(Sys.time(), "\n"))
 
 # geneCoexpr_DT <- eval(parse(text = load(file.path(paste0(chromo, "_geneCoexpr_DT.Rdata")))))
 # geneDist_DT <- eval(parse(text = load(file.path(paste0(chromo, "_geneDist_DT.Rdata")))))
@@ -77,7 +79,7 @@ stopifnot(grepl("_TAD", all_regions))
 
 reg <- all_regions[35]
 
-# all_regions <- all_regions[1:5]
+# all_regions <- all_regions[1:3]
 
 all_scores_all_TADs <- foreach(reg = all_regions) %dopar% {
   
@@ -135,7 +137,10 @@ all_scores_all_TADs <- foreach(reg = all_regions) %dopar% {
                                                    ! tadRange_coexprDistDT$gene2 %in% tad_sameTADdt$gene2,
                                                  ]
   nrow(tadRange_coexprDistDT)
-  stopifnot(tadRange_coexprDistDT$chromo == tad_chromo)
+  
+  # stopifnot(tadRange_coexprDistDT$chromo == tad_chromo)
+  # => take all chromos
+  
   stopifnot( nrow(tadRange_coexprDistDT) > 0 )
   
   #*************************************************************************************************************
