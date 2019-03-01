@@ -13,6 +13,8 @@ startTime <- Sys.time()
 # - wilcox_ttest_meanTAD_qq.Rdata
 ################################################################################
 
+#### ADDED in the 
+
 SSHFS <- F
 
 setDir <- ifelse(SSHFS, "/media/electron", "")
@@ -26,7 +28,7 @@ pipScriptDir <- paste0(setDir, "/mnt/ed4/marie/scripts/TAD_DE_pipeline_v2")
 
 script0_name <- "0_prepGeneData"
 script1_name <- "1_runGeneDE"
-script_name <- "2_runWilcoxonTAD"
+script_name <- "2v2_runWilcoxonTAD"
 stopifnot(file.exists(paste0(pipScriptDir, "/", script_name, ".R")))
 cat(paste0("> START ", script_name,  "\n"))
 
