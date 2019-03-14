@@ -1,5 +1,5 @@
 
-#Rscript allChromo_score_perf.R
+# Rscript allChromo_score_perf.R
 
 SSHFS <- FALSE
 setDir <- ifelse(SSHFS, "~/media/electron", "")
@@ -138,7 +138,8 @@ outFile <- file.path(outFold, paste0("slope_inTAD_diffTAD_cropped.", plotType))
 do.call(plotType, list(outFile, height=myHeight, width=myWidth))
 plot_multiDens_setcols(
   list(slope_inTAD = score1_all_slope_inTAD,
-       slope_diffTAD = score1_all_slope_diffTAD)
+       slope_diffTAD = score1_all_slope_diffTAD),
+  plotTit = myTit
 )
 mtext(text=subTit, side=3)
 foo <- dev.off()

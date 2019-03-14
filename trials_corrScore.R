@@ -1,10 +1,12 @@
 SSHFS <- TRUE
-setDir <- ifelse(SSHFS, "~/media/electron", "")
+setDir <- ifelse(SSHFS, "/media/electron", "")
 
 suppressPackageStartupMessages(library(flux, warn.conflicts = FALSE, quietly = TRUE, verbose = FALSE))
 suppressPackageStartupMessages(library(doMC, warn.conflicts = FALSE, quietly = TRUE, verbose = FALSE))
 suppressPackageStartupMessages(library(foreach, warn.conflicts = FALSE, quietly = TRUE, verbose = FALSE))
 registerDoMC(ifelse(SSHFS, 2, 40))
+
+source("utils_fct.R")
 
 dataFold <- file.path(setDir, "/mnt/etemp/marie/Cancer_HiC_data_TAD_DA")
 stopifnot(dir.exists(dataFold))
@@ -22,6 +24,11 @@ dir.create(outFold, recursive = TRUE)
 script0_name <- "0_prepGeneData"
 script1_name <- "1_runGeneDE"
 script_name <- "4v2_runScoreTADCorr"
+script4_name <- "4_runMeanTADCorr"
+script4v2_name <- "4v2_runConcordTADCorr"
+script4v3_name <- "4v3_runConcordTADCorr"
+script4vAll_name <- "4vAll_runConcordTADCorr"
+
 
 diffTADcol <- "blue"
 inTADcol <- "red"
@@ -31,7 +38,70 @@ norm_rnaseqDT <- eval(parse(text = load(paste0(pipOutFold, "/", script0_name, "/
 initList <- eval(parse(text = load(paste0(pipOutFold, "/", script0_name, "/rna_geneList.Rdata"))))
 geneList <- eval(parse(text = load(paste0(pipOutFold, "/", script0_name, "/pipeline_geneList.Rdata"))))
 
-norm_rnaseqDT <- norm_rnaseqDT[names(geneList),]    
+meanTADcorr <- eval(parse(text = load(file.path(pipOutFold,  script4_name, "all_meanCorr_TAD.Rdata"))))
+meanTADconcord_v2 <- eval(parse(text = load(file.path(pipOutFold,  script4v2_name, "all_concordCorr_TAD.Rdata"))))
+meanTADconcord_v3 <- eval(parse(text = load(file.path(pipOutFold,  script4v3_name, "all_concordCorr_TAD.Rdata"))))
+meanTADconcord_vAll <- eval(parse(text = load(file.path(pipOutFold,  script4vAll_name, "all_concordCorr_TAD.Rdata"))))
+
+ratioMagnitude <- unlist(lapply(meanTADconcord_vAll, function(x)x[["ratioMagnitude"]]))
+ratioNbr <- unlist(lapply(meanTADconcord_vAll, function(x)x[["ratioNbr"]]))
+
+densplot(x=ratioMagnitude, y = ratioNbr,
+         xlab="ratioMagnitude", ylab="ratioNbr")
+abline(v=0.5, h=0.5, lty=2)
+
+
+f1 <- function(x,y) x*y
+cf_func(f1, xlim = c(0,1),ylim = c(0, 1))
+
+
+result <- function(x, y,d){
+  ydata=numeric(length(seq(y[1],y[2],d)))
+  mat=matrix(NA,length(seq(y[1],y[2],d)),length(seq(x[1],x[2],d)))
+  yy=seq(y[1],y[2],d)
+  xx=seq(x[1],x[2],d)
+  for(i in 1:length(xx)){
+    for(n in 1:length(yy)){
+      ydata[n]=xx[i]*yy[n]
+    }
+    mat[,i]=ydata
+  }
+  return(mat)}
+
+
+rotate <- function(x) t(apply(x, 2, rev))
+
+
+mydata=result(x=c(0,1),y=c(0,1),d=10)
+image(rotate(mydata))
+par(new=TRUE)
+contour(mydata)
+
+
+
+
+
+stopifnot(setequal(names(meanTADcorr), names(meanTADconcord_vAll)))
+
+stopifnot(setequal(names(meanTADcorr), names(meanTADconcord_v2)))
+stopifnot(setequal(names(meanTADcorr), names(meanTADconcord_v3)))
+commonDS <- intersect(names(meanTADcorr), names(meanTADconcord_v2))
+
+plot(x=meanTADcorr[commonDS], y=meanTADconcord_v2[commonDS])
+plot(x=meanTADcorr[commonDS], y=meanTADconcord_v3[commonDS])
+plot(x=meanTADconcord_v2[commonDS], y=meanTADconcord_v3[commonDS])
+
+plot_multiDens(
+  list(
+    meanTADcorr=meanTADcorr,
+    meanTADconcord_v2=meanTADconcord_v2,
+    meanTADconcord_v3 =meanTADconcord_v3
+    
+  )
+)
+
+
+norm_rnaseqDT <- norm_rnaseqDT[names(geneList),]     
 stopifnot(all(rownames(norm_rnaseqDT) == names(geneList)))
 stopifnot(!any(duplicated(names(geneList))))
 

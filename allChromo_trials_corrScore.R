@@ -1,6 +1,8 @@
 SSHFS <- FALSE
 setDir <- ifelse(SSHFS, "~/media/electron", "")
 
+# Rscript allChromo_trials_corrScore.R GSE105318_DLD1_40kb TCGAcoad_msi_mss
+
 startTime <- Sys.time()
 
 suppressPackageStartupMessages(library(flux, warn.conflicts = FALSE, quietly = TRUE, verbose = FALSE))
@@ -16,6 +18,10 @@ stopifnot(dir.exists(dataFold))
 hicds <- "GSE105318_DLD1_40kb"
 exprds <- "TCGAcoad_msi_mss"
 
+args <- commandArgs(trailingOnly = TRUE)
+hicds <- args[1]
+exprds <- args[2]
+
 # chromo <- "chr20"
 
 stopifnot(dir.exists(file.path(dataFold, hicds)))
@@ -23,7 +29,7 @@ stopifnot(dir.exists(file.path(dataFold, hicds)))
 pipOutFold <- file.path(dataFold, "PIPELINE", "OUTPUT_FOLDER", hicds, exprds)
 stopifnot(dir.exists(file.path(pipOutFold)))
 
-outFold <- file.path(paste0("TRIALS_CORRSCORE"))
+outFold <- file.path(paste0("TRIALS_CORRSCORE"), hicds, exprds)
 dir.create(outFold, recursive = TRUE)
 
 script0_name <- "0_prepGeneData"
